@@ -1,13 +1,22 @@
 from nonebot import on_command, CommandSession
 import requests
 import socket
-
+import asyncio
 
 @on_command('ip', only_to_me=False)
 async def ipinfo(session: CommandSession):
+    async def get_ipinfo(ipaddr):
+        addr = socket.gethostbyname(ipaddr)
+        data = requests.get('http://ip-api.com/json/' + addr).json()
+        country = data['country']
+        area = data['isp']
+        report = 'IP地址：' + addr + '\n' + 'Country：' + country + '\n' + 'ISP：' + area
+        await session.send(report)
+
     ipaddress = session.get('ipaddress', prompt='请发送需要查询的IP地址.')
-    ipinfo_report = await get_ipinfo(ipaddress)
-    await session.send(ipinfo_report)
+    ipinfo_report = get_ipinfo(ipaddress)
+    asyncio.create_task(ipinfo_report)
+
 
 
 @ipinfo.args_parser
@@ -22,10 +31,3 @@ async def _(session: CommandSession):
     session.state[session.current_key] = stripped_arg
 
 
-async def get_ipinfo(ipaddr):
-    addr = socket.gethostbyname(ipaddr)
-    data = requests.get('http://cloud.danziw.com:8005/?ip=' + addr).json()
-    country = data[addr]['country']
-    area = data[addr]['area']
-    report = 'IP地址：' + addr + '\n' + 'Country：' + country + '\n' + 'Area：' + area
-    return report
